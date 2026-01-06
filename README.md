@@ -16,6 +16,7 @@ Run **Claude Code**, **Gemini CLI**, **OpenAI Codex**, **Aider**, **OpenCode** a
 ## Features
 
 - **Dedicated Sidebar Terminal** - Run any AI CLI tool directly from VS Code's activity bar, always accessible while you code
+- **Multi-Tab Support** - Run multiple terminal instances simultaneously with keyboard shortcuts for quick navigation
 - **Works with Any AI Tool** - Claude Code, Gemini CLI, OpenAI Codex, Aider, and more
 - **VS Code Theme Integration** - Full 256-color support with automatic theme synchronization
 - **Dual Execution Modes** - Choose between direct mode (cleaner output) or shell mode (full shell features)
@@ -85,12 +86,25 @@ npm run package
 
 ### Commands
 
-| Command                    | Description                  |
-| -------------------------- | ---------------------------- |
-| `Claude Terminal: Restart` | Restart the terminal session |
-| `Claude Terminal: Clear`   | Clear the terminal output    |
+| Command                         | Description                    |
+| ------------------------------- | ------------------------------ |
+| `Claude Terminal: Restart`      | Restart the terminal session   |
+| `Claude Terminal: Clear`        | Clear the terminal output      |
+| `Claude Terminal: New Tab`      | Create a new terminal tab      |
+| `Claude Terminal: Close Tab`    | Close the current terminal tab |
+| `Claude Terminal: Next Tab`     | Switch to the next tab         |
+| `Claude Terminal: Previous Tab` | Switch to the previous tab     |
 
 Access commands via the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) or the view title bar icons.
+
+### Keyboard Shortcuts
+
+| Action       | Windows/Linux   | macOS           |
+| ------------ | --------------- | --------------- |
+| New Tab      | `Ctrl+Shift+``  | `Cmd+Shift+``   |
+| Close Tab    | `Ctrl+W`        | `Cmd+W`         |
+| Next Tab     | `Ctrl+PageDown` | `Cmd+Alt+Right` |
+| Previous Tab | `Ctrl+PageUp`   | `Cmd+Alt+Left`  |
 
 ## Configuration
 
