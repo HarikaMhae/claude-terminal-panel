@@ -114,17 +114,16 @@ export class ClaudeTerminalViewProvider
     const id = this.stateManager.generateId();
     const name = this.stateManager.generateName();
 
-    // Deactivate current and activate new
-    this.stateManager.setActive(id);
-
     const instance: TerminalInstance = {
       id,
       name,
       pty: undefined,
-      isActive: true
+      isActive: false
     };
 
+    // Add instance first, then activate (so setActive can find it)
     this.stateManager.set(id, instance);
+    this.stateManager.setActive(id);
 
     // Notify webview
     this.postMessage({ type: 'createTab', id, name });

@@ -22,11 +22,11 @@ body {
   overflow: hidden;
 }
 
-/* Vertical tab bar on the right - expands on hover */
+/* Vertical tab bar on the right */
 #tab-bar {
   display: flex;
   flex-direction: column;
-  width: 32px;
+  width: 36px;
   background-color: var(--vscode-tab-inactiveBackground, #2d2d2d);
   border-left: 1px solid var(--vscode-tab-border, #3c3c3c);
   overflow-y: auto;
@@ -34,11 +34,6 @@ body {
   flex-shrink: 0;
   position: relative;
   z-index: 100;
-  transition: width 0.15s ease;
-}
-
-#tab-bar:hover {
-  width: 50px;
 }
 
 #tab-bar::-webkit-scrollbar {
@@ -53,19 +48,19 @@ body {
 .tab {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: start;
   width: 100%;
-  height: 32px;
-  padding: 0 5px;
+  height: 28px;
   background-color: var(--vscode-tab-inactiveBackground, #2d2d2d);
   border-bottom: 1px solid var(--vscode-tab-border, #3c3c3c);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--vscode-tab-inactiveForeground, #8c8c8c);
   position: relative;
   flex-shrink: 0;
   transition: background-color 0.1s ease;
+  overflow: hidden;
 }
 
 .tab:hover {
@@ -83,37 +78,40 @@ body {
   text-align: center;
   line-height: 1;
   flex-shrink: 0;
+  margin-left: 8px;
 }
 
-/* Tab close button - hidden by default, shown when tab-bar expands */
+/* Tab close button - red block on right side */
 .tab-close {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-left: auto;
-  background: transparent;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  padding: 0;
+  margin: 0;
+  background-color: #ff5555;
   border: none;
-  border-radius: 4px;
-  color: var(--vscode-disabledForeground, #6c6c6c);
+  border-radius: 0;
   cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.1s ease;
+  transition: width 0.1s ease;
+  opacity: 0;
+  pointer-events: none;
 }
 
-#tab-bar:hover .tab-close {
-  display: flex;
+.tab-close svg {
+  display: none;
+}
+
+.tab:hover .tab-close {
+  width: 8px;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .tab-close:hover {
-  background-color: rgba(255, 85, 85, 0.2);
-  color: #ff5555;
-  transform: scale(1.1);
-}
-
-.tab-close:active {
-  transform: scale(0.95);
+  width: 10px;
+  background-color: #ff3333;
 }
 
 /* Add tab button */
@@ -122,13 +120,13 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 32px;
+  height: 28px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--vscode-tab-border, #3c3c3c);
   color: var(--vscode-icon-foreground, #c5c5c5);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
