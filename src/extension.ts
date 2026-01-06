@@ -26,6 +26,31 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Multi-tab commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand('claudeTerminal.newTab', () => {
+      terminalProvider?.createTerminal();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('claudeTerminal.closeTab', () => {
+      terminalProvider?.closeActiveTerminal();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('claudeTerminal.nextTab', () => {
+      terminalProvider?.switchToNextTerminal();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('claudeTerminal.previousTab', () => {
+      terminalProvider?.switchToPreviousTerminal();
+    })
+  );
+
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('claudeTerminal')) {

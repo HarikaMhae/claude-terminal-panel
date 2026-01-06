@@ -1,238 +1,263 @@
 import * as vscode from 'vscode';
-import * as os from 'os';
-import * as fs from 'fs';
+import { PtyManager, type PtyEventCallbacks } from './ptyManager';
+import { ConfigManager } from './configManager';
+import { TerminalStateManager } from './terminalStateManager';
+import { dispatchMessage, type MessageHandlerContext } from './messageHandlers';
+import type { WebviewMessage, TerminalInstance, ExtensionMessage } from './types';
 
-// Webview message types
-interface WebviewMessage {
-  type: 'ready' | 'input' | 'resize';
-  cols?: number;
-  rows?: number;
-  data?: string;
-}
+export class ClaudeTerminalViewProvider
+  implements vscode.WebviewViewProvider, MessageHandlerContext
+{
+  private view?: vscode.WebviewView;
+  private disposed = false;
+  private isRestarting = false;
+  private lastCols = 80;
+  private lastRows = 24;
 
-// node-pty types
-interface IPty {
-  onData: (callback: (data: string) => void) => void;
-  onExit: (callback: (exitCode: { exitCode: number; signal?: number }) => void) => void;
-  write: (data: string) => void;
-  resize: (cols: number, rows: number) => void;
-  kill: () => void;
-}
+  private readonly configManager = new ConfigManager();
+  private readonly stateManager = new TerminalStateManager();
+  private readonly ptyManager: PtyManager;
 
-interface INodePty {
-  spawn: (
-    file: string,
-    args: string[],
-    options: {
-      name?: string;
-      cols?: number;
-      rows?: number;
-      cwd?: string;
-      env?: { [key: string]: string | undefined };
+  constructor(private readonly extensionUri: vscode.Uri) {
+    const callbacks: PtyEventCallbacks = {
+      onData: this.handlePtyData.bind(this),
+      onExit: this.handlePtyExit.bind(this),
+      onError: this.handlePtyError.bind(this)
+    };
+    this.ptyManager = new PtyManager(callbacks);
+  }
+
+  // --- MessageHandlerContext Implementation ---
+
+  handleReady(cols: number, rows: number): void {
+    this.lastCols = cols;
+    this.lastRows = rows;
+    this.createTerminal();
+  }
+
+  handleInput(id: string, data: string): void {
+    this.ptyManager.write(id, data);
+  }
+
+  handleResize(id: string, cols: number, rows: number): void {
+    this.lastCols = cols;
+    this.lastRows = rows;
+    this.ptyManager.resize(id, cols, rows);
+  }
+
+  handleNewTab(): void {
+    this.createTerminal();
+  }
+
+  handleCloseTab(id: string): void {
+    this.closeTerminal(id);
+  }
+
+  handleSwitchTab(id: string): void {
+    this.switchToTerminal(id);
+  }
+
+  // --- PTY Event Handlers ---
+
+  private handlePtyData(terminalId: string, data: string): void {
+    if (!this.disposed && this.view) {
+      this.postMessage({ type: 'output', id: terminalId, data });
     }
-  ) => IPty;
-}
+  }
 
-interface TerminalConfig {
-  command: string;
-  args: string[];
-  autoRun: boolean;
-  shell: string;
-  env: { [key: string]: string };
-  directMode: boolean;
-}
+  private handlePtyExit(terminalId: string, exitCode: number): void {
+    if (!this.disposed && this.view && !this.isRestarting) {
+      this.postMessage({
+        type: 'output',
+        id: terminalId,
+        data: `\r\n[Process exited with code ${String(exitCode)}]\r\n`
+      });
+    }
+  }
 
-export class ClaudeTerminalViewProvider implements vscode.WebviewViewProvider {
-  private _view?: vscode.WebviewView;
-  private _pty?: IPty;
-  private _nodePty?: INodePty;
-  private _disposed = false;
-  private _isRestarting = false;
+  private handlePtyError(terminalId: string, error: string): void {
+    this.postMessage({
+      type: 'output',
+      id: terminalId,
+      data: `\r\nError starting terminal: ${error}\r\n`
+    });
+  }
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
+  // --- WebviewViewProvider Implementation ---
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): void {
-    this._view = webviewView;
+    this.view = webviewView;
 
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this._extensionUri]
+      localResourceRoots: [this.extensionUri]
     };
 
-    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+    webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
 
     webviewView.webview.onDidReceiveMessage((message: WebviewMessage) => {
-      switch (message.type) {
-        case 'ready':
-          this._startTerminal(message.cols ?? 80, message.rows ?? 24);
-          break;
-        case 'input':
-          if (message.data) {
-            this._pty?.write(message.data);
-          }
-          break;
-        case 'resize':
-          if (message.cols !== undefined && message.rows !== undefined) {
-            this._pty?.resize(message.cols, message.rows);
-          }
-          break;
-      }
+      dispatchMessage(message, this);
     });
 
     webviewView.onDidDispose(() => {
-      this._killPty();
+      this.ptyManager.killAll();
     });
   }
 
-  private _startTerminal(cols: number = 80, rows: number = 24): void {
-    this._killPty();
+  // --- Terminal Management (Public API) ---
 
-    try {
-      // Dynamic import of node-pty
-      if (!this._nodePty) {
-        this._nodePty = require('node-pty') as INodePty;
-      }
+  public createTerminal(): string {
+    const id = this.stateManager.generateId();
+    const name = this.stateManager.generateName();
 
-      const config = this._getConfig();
-      const shell = config.shell || this._getDefaultShell();
-      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || os.homedir();
+    // Deactivate current and activate new
+    this.stateManager.setActive(id);
 
-      // Verify cwd exists
-      const actualCwd = fs.existsSync(cwd) ? cwd : os.homedir();
-
-      const env: { [key: string]: string } = {};
-      // Copy process.env, filtering out undefined values
-      for (const [key, value] of Object.entries(process.env)) {
-        if (value !== undefined) {
-          env[key] = value;
-        }
-      }
-      // Add config env and terminal settings
-      Object.assign(env, config.env, {
-        TERM: 'xterm-256color',
-        COLORTERM: 'truecolor',
-        FORCE_COLOR: '1',
-        CI: undefined // Ensure Claude doesn't think it's in CI
-      });
-      delete env.CI;
-
-      // Direct mode: spawn command directly, no shell
-      // Shell mode: spawn shell and run command in it
-      if (config.directMode && config.command) {
-        this._pty = this._nodePty.spawn(config.command, config.args, {
-          name: 'xterm-256color',
-          cols: cols,
-          rows: rows,
-          cwd: actualCwd,
-          env: env
-        });
-      } else {
-        this._pty = this._nodePty.spawn(shell, [], {
-          name: 'xterm-256color',
-          cols: cols,
-          rows: rows,
-          cwd: actualCwd,
-          env: env
-        });
-      }
-
-      this._pty.onData((data: string) => {
-        if (!this._disposed && this._view) {
-          this._view.webview.postMessage({ type: 'output', data });
-        }
-      });
-
-      this._pty.onExit(({ exitCode }) => {
-        if (!this._disposed && this._view && !this._isRestarting) {
-          this._view.webview.postMessage({
-            type: 'output',
-            data: `\r\n[Process exited with code ${String(exitCode)}]\r\n`
-          });
-        }
-      });
-
-      // Auto-run command in shell mode
-      if (!config.directMode && config.autoRun && config.command) {
-        const fullCommand = [config.command, ...config.args].join(' ');
-        // Clear screen and run command
-        this._pty.write('clear && ' + fullCommand + '\r');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this._view?.webview.postMessage({
-        type: 'output',
-        data: `\r\nError starting terminal: ${errorMessage}\r\n`
-      });
-    }
-  }
-
-  private _getDefaultShell(): string {
-    if (process.platform === 'win32') {
-      return process.env.COMSPEC || 'cmd.exe';
-    }
-    return process.env.SHELL || '/bin/bash';
-  }
-
-  private _getConfig(): TerminalConfig {
-    const config = vscode.workspace.getConfiguration('claudeTerminal');
-    return {
-      command: config.get<string>('command', 'claude'),
-      args: config.get<string[]>('args', []),
-      autoRun: config.get<boolean>('autoRun', true),
-      shell: config.get<string>('shell', ''),
-      env: config.get<{ [key: string]: string }>('env', {}),
-      directMode: config.get<boolean>('directMode', true)
+    const instance: TerminalInstance = {
+      id,
+      name,
+      pty: undefined,
+      isActive: true
     };
+
+    this.stateManager.set(id, instance);
+
+    // Notify webview
+    this.postMessage({ type: 'createTab', id, name });
+    this.sendTabsUpdate();
+
+    // Start the terminal process
+    const config = this.configManager.getConfig();
+    this.ptyManager.spawn(id, config, this.lastCols, this.lastRows);
+
+    // Switch to the new tab
+    this.postMessage({ type: 'switchTab', id });
+
+    return id;
   }
 
-  private _killPty(): void {
-    if (this._pty) {
-      try {
-        this._pty.kill();
-      } catch {
-        // Ignore errors when killing
-      }
-      this._pty = undefined;
+  public closeTerminal(terminalId: string): void {
+    const instance = this.stateManager.get(terminalId);
+    if (!instance) return;
+
+    this.ptyManager.kill(terminalId);
+    this.stateManager.delete(terminalId);
+    this.postMessage({ type: 'removeTab', id: terminalId });
+
+    // Handle active terminal closure
+    if (this.stateManager.getActiveId() === terminalId) {
+      this.handleActiveTerminalClosed();
+      return;
     }
+
+    this.sendTabsUpdate();
+  }
+
+  private handleActiveTerminalClosed(): void {
+    const remaining = this.stateManager.getAll();
+    if (remaining.length > 0) {
+      const newActive = remaining[remaining.length - 1];
+      this.switchToTerminal(newActive.id);
+    } else {
+      this.stateManager.clearActive();
+      this.createTerminal();
+      return;
+    }
+    this.sendTabsUpdate();
+  }
+
+  public closeActiveTerminal(): void {
+    const activeId = this.stateManager.getActiveId();
+    if (activeId) {
+      this.closeTerminal(activeId);
+    }
+  }
+
+  public switchToTerminal(terminalId: string): void {
+    const instance = this.stateManager.get(terminalId);
+    if (!instance) return;
+
+    this.stateManager.setActive(terminalId);
+    this.postMessage({ type: 'switchTab', id: terminalId });
+    this.sendTabsUpdate();
+  }
+
+  public switchToNextTerminal(): void {
+    const ids = this.stateManager.getAllIds();
+    if (ids.length <= 1) return;
+
+    const currentIndex = ids.indexOf(this.stateManager.getActiveId() ?? '');
+    const nextIndex = (currentIndex + 1) % ids.length;
+    this.switchToTerminal(ids[nextIndex]);
+  }
+
+  public switchToPreviousTerminal(): void {
+    const ids = this.stateManager.getAllIds();
+    if (ids.length <= 1) return;
+
+    const currentIndex = ids.indexOf(this.stateManager.getActiveId() ?? '');
+    const prevIndex = (currentIndex - 1 + ids.length) % ids.length;
+    this.switchToTerminal(ids[prevIndex]);
   }
 
   public restart(): void {
-    this._isRestarting = true;
+    const activeId = this.stateManager.getActiveId();
+    if (!activeId) return;
+
+    this.isRestarting = true;
     this.clear();
-    this._killPty();
+    this.ptyManager.kill(activeId);
+
     // Delay to let old PTY exit event fire before resetting flag
     setTimeout(() => {
-      this._isRestarting = false;
+      this.isRestarting = false;
     }, 100);
-    this._startTerminal();
+
+    const config = this.configManager.getConfig();
+    this.ptyManager.spawn(activeId, config, this.lastCols, this.lastRows);
   }
 
   public clear(): void {
-    this._view?.webview.postMessage({ type: 'clear' });
+    const activeId = this.stateManager.getActiveId();
+    if (activeId) {
+      this.postMessage({ type: 'clear', id: activeId });
+    }
   }
 
   public updateConfig(): void {
-    // Config will be read on next restart
+    this.configManager.invalidateCache();
   }
 
   public dispose(): void {
-    this._disposed = true;
-    this._killPty();
+    this.disposed = true;
+    this.ptyManager.killAll();
+    this.configManager.dispose();
   }
 
-  private _getHtmlForWebview(webview: vscode.Webview): string {
+  // --- Private Helpers ---
+
+  private postMessage(message: ExtensionMessage): void {
+    this.view?.webview.postMessage(message);
+  }
+
+  private sendTabsUpdate(): void {
+    const tabs = this.stateManager.getTabsInfo();
+    this.postMessage({ type: 'tabsUpdate', tabs });
+  }
+
+  private getHtmlForWebview(webview: vscode.Webview): string {
     const stylesUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'styles.css')
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'styles.css')
     );
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js')
+      vscode.Uri.joinPath(this.extensionUri, 'media', 'main.js')
     );
 
-    const nonce = this._getNonce();
+    const nonce = this.getNonce();
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -244,7 +269,8 @@ export class ClaudeTerminalViewProvider implements vscode.WebviewViewProvider {
     <link href="https://unpkg.com/xterm@5.3.0/css/xterm.css" rel="stylesheet" integrity="sha384-LJcOxlx9IMbNXDqJ2axpfEQKkAYbFjJfhXexLfiRJhjDU81mzgkiQq8rkV0j6dVh" crossorigin="anonymous">
 </head>
 <body>
-    <div id="terminal-container"></div>
+    <div id="terminals-container"></div>
+    <div id="tab-bar"></div>
     <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js" integrity="sha384-/nfmYPUzWMS6v2atn8hbljz7NE0EI1iGx34lJaNzyVjWGDzMv+ciUZUeJpKA3Glc" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js" integrity="sha384-AQLWHRKAgdTxkolJcLOELg4E9rE89CPE2xMy3tIRFn08NcGKPTsELdvKomqji+DL" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.js" integrity="sha384-U4fBROT3kCM582gaYiNaOSQiJbXPzd9SfR1598Y7yeGSYVBzikXrNg0XyuU+mOnl" crossorigin="anonymous"></script>
@@ -253,7 +279,7 @@ export class ClaudeTerminalViewProvider implements vscode.WebviewViewProvider {
 </html>`;
   }
 
-  private _getNonce(): string {
+  private getNonce(): string {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     for (let i = 0; i < 32; i++) {

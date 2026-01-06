@@ -67,19 +67,72 @@
         "title": "Clear Terminal",
         "category": "Claude Terminal",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "claudeTerminal.newTab",
+        "title": "New Terminal Tab",
+        "category": "Claude Terminal",
+        "icon": "$(add)"
+      },
+      {
+        "command": "claudeTerminal.closeTab",
+        "title": "Close Terminal Tab",
+        "category": "Claude Terminal",
+        "icon": "$(close)"
+      },
+      {
+        "command": "claudeTerminal.nextTab",
+        "title": "Next Terminal Tab",
+        "category": "Claude Terminal"
+      },
+      {
+        "command": "claudeTerminal.previousTab",
+        "title": "Previous Terminal Tab",
+        "category": "Claude Terminal"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "claudeTerminal.newTab",
+        "key": "ctrl+shift+`",
+        "mac": "cmd+shift+`",
+        "when": "focusedView == 'claudeTerminal.terminalView'"
+      },
+      {
+        "command": "claudeTerminal.nextTab",
+        "key": "ctrl+pagedown",
+        "mac": "cmd+alt+right",
+        "when": "focusedView == 'claudeTerminal.terminalView'"
+      },
+      {
+        "command": "claudeTerminal.previousTab",
+        "key": "ctrl+pageup",
+        "mac": "cmd+alt+left",
+        "when": "focusedView == 'claudeTerminal.terminalView'"
+      },
+      {
+        "command": "claudeTerminal.closeTab",
+        "key": "ctrl+w",
+        "mac": "cmd+w",
+        "when": "focusedView == 'claudeTerminal.terminalView'"
       }
     ],
     "menus": {
       "view/title": [
         {
+          "command": "claudeTerminal.newTab",
+          "when": "view == claudeTerminal.terminalView",
+          "group": "navigation@1"
+        },
+        {
           "command": "claudeTerminal.restart",
           "when": "view == claudeTerminal.terminalView",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "claudeTerminal.clear",
           "when": "view == claudeTerminal.terminalView",
-          "group": "navigation"
+          "group": "navigation@3"
         }
       ]
     },
@@ -124,15 +177,17 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run lint && npm run compile",
-    "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node-pty --format=cjs --platform=node",
-    "watch": "npm run compile -- --watch",
+    "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node-pty --format=cjs --platform=node && esbuild media/main.ts --bundle --outfile=media/main.js --format=iife --platform=browser --external:Terminal --external:FitAddon --external:WebLinksAddon",
+    "compile:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node-pty --format=cjs --platform=node",
+    "compile:media": "esbuild media/main.ts --bundle --outfile=media/main.js --format=iife --platform=browser --external:Terminal --external:FitAddon --external:WebLinksAddon",
+    "watch": "npm run compile:extension -- --watch",
     "rebuild": "npx @electron/rebuild --version 39.2.3",
     "postinstall": "npm run rebuild",
     "package": "vsce package",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"media/**/*.{js,css}\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"media/**/*.{js,css}\"",
+    "format": "prettier --write \"src/**/*.ts\" \"media/**/*.{ts,css}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"media/**/*.{ts,css}\"",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -140,7 +195,7 @@
       "eslint --fix",
       "prettier --write"
     ],
-    "media/**/*.js": [
+    "media/**/*.ts": [
       "eslint --fix",
       "prettier --write"
     ],
@@ -156,6 +211,9 @@
     "@eslint/js": "^9.39.2",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/xterm": "^5.5.0",
     "esbuild": "^0.19.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^9.1.2",

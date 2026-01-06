@@ -6,7 +6,7 @@ import globals from 'globals';
 export default tseslint.config(
   // Global ignores
   {
-    ignores: ['dist/**', 'node_modules/**', '*.vsix'],
+    ignores: ['dist/**', 'node_modules/**', '*.vsix', 'media/**/*.js'],
   },
 
   // Base JS recommended rules
@@ -42,24 +42,26 @@ export default tseslint.config(
     },
   },
 
-  // Media/webview JavaScript configuration
+  // Media/webview TypeScript configuration
   {
-    files: ['media/**/*.js'],
+    files: ['media/**/*.ts'],
+    extends: [
+      ...tseslint.configs.recommended,
+    ],
     languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'script',
+      parserOptions: {
+        project: './media/tsconfig.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
       globals: {
         ...globals.browser,
-        // xterm.js globals
-        Terminal: 'readonly',
-        FitAddon: 'readonly',
-        WebLinksAddon: 'readonly',
-        // VS Code webview API
-        acquireVsCodeApi: 'readonly',
       },
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_'
+      }],
     },
   },
 
