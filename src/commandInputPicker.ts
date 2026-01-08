@@ -164,15 +164,8 @@ export class CommandInputPicker {
             }
           }
 
-          // Add the selected flag
-          newValue = newValue + (newValue ? ' ' : '') + flag.flag;
-
-          // If flag takes a value, add = for value input
-          if (flag.takesValue) {
-            newValue += '=';
-          } else {
-            newValue += ' ';
-          }
+          // Add the selected flag with trailing space
+          newValue = newValue + (newValue ? ' ' : '') + flag.flag + ' ';
 
           quickPick.value = newValue;
           // Keep picker open for more flag selection
