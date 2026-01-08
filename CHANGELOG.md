@@ -5,6 +5,17 @@ All notable changes to the "Claude Terminal Panel" extension will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2026-01-08
+
+### Added
+
+- Notification pill for terminal input prompts
+- Accent color support for terminal tabs
+
+### Changed
+
+- Improved flag addition in command input picker
+
 ## [1.0.5] - 2026-01-08
 
 ### Added
