@@ -164,9 +164,17 @@ body {
 
 /* xterm 6.0.0 handles viewport scrolling internally */
 
-/* Scrollbar styling */
+/* Scrollbar styling - override xterm's overlay scrollbar */
+.terminal-wrapper .xterm .scrollbar.vertical {
+  width: 6px !important;
+}
+
+.terminal-wrapper .xterm .scrollbar.vertical .slider {
+  width: 6px !important;
+}
+
 .terminal-wrapper .xterm-viewport::-webkit-scrollbar {
-  width: 10px;
+  width: 6px;
 }
 
 .terminal-wrapper .xterm-viewport::-webkit-scrollbar-track {
@@ -175,7 +183,7 @@ body {
 
 .terminal-wrapper .xterm-viewport::-webkit-scrollbar-thumb {
   background: var(--vscode-scrollbarSlider-background, #424242);
-  border-radius: 5px;
+  border-radius: 3px;
 }
 
 .terminal-wrapper .xterm-viewport::-webkit-scrollbar-thumb:hover {
