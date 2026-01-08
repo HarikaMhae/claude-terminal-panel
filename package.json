@@ -63,12 +63,6 @@
         "icon": "$(debug-restart)"
       },
       {
-        "command": "claudeTerminal.clear",
-        "title": "Clear Terminal",
-        "category": "Claude Terminal",
-        "icon": "$(clear-all)"
-      },
-      {
         "command": "claudeTerminal.newTab",
         "title": "New Terminal Tab",
         "category": "Claude Terminal",
@@ -128,11 +122,6 @@
           "command": "claudeTerminal.restart",
           "when": "view == claudeTerminal.terminalView",
           "group": "navigation@2"
-        },
-        {
-          "command": "claudeTerminal.clear",
-          "when": "view == claudeTerminal.terminalView",
-          "group": "navigation@3"
         }
       ]
     },

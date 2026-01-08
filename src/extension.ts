@@ -20,12 +20,6 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('claudeTerminal.clear', () => {
-      terminalProvider?.clear();
-    })
-  );
-
   // Multi-tab commands
   context.subscriptions.push(
     vscode.commands.registerCommand('claudeTerminal.newTab', () => {
