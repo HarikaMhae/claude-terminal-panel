@@ -188,3 +188,35 @@ body {
 .xterm .xterm-selection div {
   background-color: var(--vscode-terminal-selectionBackground, rgba(38, 79, 120, 0.5)) !important;
 }
+
+/* Notification pill for waiting input */
+.notification-pill {
+  position: absolute;
+  top: 1px;
+  left: 0px;
+  width: 4px;
+  height: 4px;
+  background-color: var(--vscode-notificationsErrorIcon-foreground, #f14c4c);
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(241, 76, 76, 0.5);
+  animation: pulse-notification 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes pulse-notification {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.9);
+  }
+}
+
+/* Hide notification pill on active tab */
+.tab.active .notification-pill {
+  display: none;
+}

@@ -50,6 +50,7 @@ export interface TerminalInstance {
   pty: IPty | undefined;
   isActive: boolean;
   workspaceFolderIndex?: number;
+  isWaitingForInput?: boolean;
 }
 
 // Tab information for UI
@@ -58,6 +59,7 @@ export interface TabInfo {
   name: string;
   isActive: boolean;
   accentColor?: string;
+  isWaitingForInput?: boolean;
 }
 
 // Webview message types (from webview to extension)
@@ -77,7 +79,8 @@ export type ExtensionMessage =
   | { type: 'tabsUpdate'; tabs: TabInfo[] }
   | { type: 'createTab'; id: string; name: string; accentColor?: string }
   | { type: 'switchTab'; id: string }
-  | { type: 'removeTab'; id: string };
+  | { type: 'removeTab'; id: string }
+  | { type: 'setNotification'; id: string; show: boolean };
 
 // Command help parsing types
 export interface CommandFlag {

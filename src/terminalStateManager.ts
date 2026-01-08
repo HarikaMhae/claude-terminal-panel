@@ -108,6 +108,16 @@ export class TerminalStateManager {
   }
 
   /**
+   * Sets the waiting for input state for a terminal.
+   */
+  setWaitingForInput(id: string, isWaiting: boolean): void {
+    const instance = this.terminals.get(id);
+    if (instance) {
+      instance.isWaitingForInput = isWaiting;
+    }
+  }
+
+  /**
    * Gets tab information for all terminals.
    */
   getTabsInfo(): TabInfo[] {
@@ -115,7 +125,8 @@ export class TerminalStateManager {
       id: t.id,
       name: t.name,
       isActive: t.isActive,
-      accentColor: this.getAccentColor(t.workspaceFolderIndex)
+      accentColor: this.getAccentColor(t.workspaceFolderIndex),
+      isWaitingForInput: t.isWaitingForInput
     }));
   }
 

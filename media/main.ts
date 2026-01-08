@@ -125,6 +125,7 @@ interface MessageHandlers {
   createTab: MessageHandler<Extract<WebviewIncomingMessage, { type: 'createTab' }>>;
   switchTab: MessageHandler<Extract<WebviewIncomingMessage, { type: 'switchTab' }>>;
   removeTab: MessageHandler<Extract<WebviewIncomingMessage, { type: 'removeTab' }>>;
+  setNotification: MessageHandler<Extract<WebviewIncomingMessage, { type: 'setNotification' }>>;
 }
 
 const messageHandlers: MessageHandlers = {
@@ -157,6 +158,9 @@ const messageHandlers: MessageHandlers = {
   },
   removeTab: (message, ctx) => {
     ctx.removeTerminal(message.id);
+  },
+  setNotification: (message, ctx) => {
+    ctx.setTabNotification(message.id, message.show);
   }
 };
 
@@ -325,6 +329,14 @@ class WebviewContext {
 
     tabElement.appendChild(nameSpan);
     tabElement.appendChild(closeButton);
+
+    // Add notification pill if waiting for input
+    if (tab.isWaitingForInput) {
+      const pill = document.createElement('span');
+      pill.className = 'notification-pill';
+      tabElement.appendChild(pill);
+    }
+
     return tabElement;
   }
 
@@ -443,6 +455,20 @@ class WebviewContext {
       t.terminal.dispose();
       t.element.remove();
       this.state.delete(id);
+    }
+  }
+
+  setTabNotification(id: string, show: boolean): void {
+    const tab = this.tabBar.querySelector(`.tab[data-id="${id}"]`);
+    if (!tab) return;
+
+    let pill = tab.querySelector('.notification-pill');
+    if (show && !pill) {
+      pill = document.createElement('span');
+      pill.className = 'notification-pill';
+      tab.appendChild(pill);
+    } else if (!show && pill) {
+      pill.remove();
     }
   }
 }

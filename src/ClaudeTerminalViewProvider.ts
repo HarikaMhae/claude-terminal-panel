@@ -6,6 +6,7 @@ import { dispatchMessage, type MessageHandlerContext } from './messageHandlers';
 import type { WebviewMessage, TerminalInstance, ExtensionMessage } from './types';
 import { WORKSPACE_ACCENT_COLORS } from './types';
 import { CommandInputPicker } from './commandInputPicker';
+import { PromptDetector, type PromptDetectorConfig } from './promptDetector';
 
 export class ClaudeTerminalViewProvider
   implements vscode.WebviewViewProvider, MessageHandlerContext
@@ -20,6 +21,7 @@ export class ClaudeTerminalViewProvider
   private readonly stateManager = new TerminalStateManager();
   private readonly ptyManager: PtyManager;
   private readonly commandPicker = new CommandInputPicker();
+  private readonly promptDetector: PromptDetector;
 
   constructor(private readonly extensionUri: vscode.Uri) {
     const callbacks: PtyEventCallbacks = {
@@ -28,6 +30,12 @@ export class ClaudeTerminalViewProvider
       onError: this.handlePtyError.bind(this)
     };
     this.ptyManager = new PtyManager(callbacks);
+
+    // Initialize prompt detector for input waiting notifications
+    this.promptDetector = new PromptDetector(
+      this.getPromptDetectorConfig(),
+      this.handleNotificationChange.bind(this)
+    );
 
     // Pre-load help for CLI agents from README (missing commands are handled gracefully)
     const config = this.configManager.getConfig();
@@ -53,6 +61,7 @@ export class ClaudeTerminalViewProvider
 
   handleInput(id: string, data: string): void {
     this.ptyManager.write(id, data);
+    this.promptDetector.onUserInput(id);
   }
 
   handleResize(id: string, cols: number, rows: number): void {
@@ -82,6 +91,7 @@ export class ClaudeTerminalViewProvider
   private handlePtyData(terminalId: string, data: string): void {
     if (!this.disposed && this.view) {
       this.postMessage({ type: 'output', id: terminalId, data });
+      this.promptDetector.onData(terminalId, data);
     }
   }
 
@@ -212,6 +222,7 @@ export class ClaudeTerminalViewProvider
     if (!instance) return;
 
     this.ptyManager.kill(terminalId);
+    this.promptDetector.removeTerminal(terminalId);
     this.stateManager.delete(terminalId);
     this.postMessage({ type: 'removeTab', id: terminalId });
 
@@ -297,16 +308,32 @@ export class ClaudeTerminalViewProvider
 
   public updateConfig(): void {
     this.configManager.invalidateCache();
+    this.promptDetector.updateConfig(this.getPromptDetectorConfig());
   }
 
   public dispose(): void {
     this.disposed = true;
     this.ptyManager.killAll();
+    this.promptDetector.dispose();
     this.configManager.dispose();
     this.commandPicker.dispose();
   }
 
   // --- Private Helpers ---
+
+  private getPromptDetectorConfig(): PromptDetectorConfig {
+    const vsConfig = vscode.workspace.getConfiguration('claudeTerminal');
+    return {
+      enabled: vsConfig.get<boolean>('promptNotification', true),
+      showDelay: vsConfig.get<number>('promptNotificationDelay', 300),
+      customPatterns: vsConfig.get<string[]>('promptPatterns', [])
+    };
+  }
+
+  private handleNotificationChange(terminalId: string, isWaiting: boolean): void {
+    this.stateManager.setWaitingForInput(terminalId, isWaiting);
+    this.postMessage({ type: 'setNotification', id: terminalId, show: isWaiting });
+  }
 
   private getAccentColor(folderIndex: number | undefined): string | undefined {
     if (folderIndex === undefined) {

@@ -160,6 +160,26 @@
           "type": "boolean",
           "default": true,
           "description": "Run command directly without shell wrapper (cleaner output, but no shell features)"
+        },
+        "claudeTerminal.promptNotification": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notification indicator on tab when terminal is waiting for user input"
+        },
+        "claudeTerminal.promptNotificationDelay": {
+          "type": "number",
+          "default": 300,
+          "minimum": 100,
+          "maximum": 2000,
+          "description": "Delay in milliseconds before showing the notification after output stops"
+        },
+        "claudeTerminal.promptPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional regex patterns to detect when terminal is waiting for input (e.g., '^mybot> $'). Built-in patterns detect most CLI AI tools automatically."
         }
       }
     }
