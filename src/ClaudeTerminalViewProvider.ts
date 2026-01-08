@@ -49,6 +49,10 @@ export class ClaudeTerminalViewProvider
     void this.createTerminal();
   }
 
+  handleNewTabWithCommand(): void {
+    void this.promptAndCreateTerminal();
+  }
+
   handleCloseTab(id: string): void {
     this.closeTerminal(id);
   }
@@ -137,6 +141,53 @@ export class ClaudeTerminalViewProvider
     this.ptyManager.spawn(id, config, this.lastCols, this.lastRows, cwd);
 
     // Switch to the new tab
+    this.postMessage({ type: 'switchTab', id });
+
+    return id;
+  }
+
+  private async promptAndCreateTerminal(): Promise<void> {
+    const config = this.configManager.getConfig();
+    const defaultCommand = [config.command, ...config.args].join(' ');
+
+    const input = await vscode.window.showInputBox({
+      prompt: 'Enter command to run',
+      value: defaultCommand,
+      placeHolder: 'e.g., claude --dangerously-skip-permissions'
+    });
+
+    if (input) {
+      const parts = input.trim().split(/\s+/);
+      const command = parts[0];
+      const args = parts.slice(1);
+      await this.createTerminalWithCommand(command, args);
+    }
+  }
+
+  public async createTerminalWithCommand(command: string, args: string[]): Promise<string> {
+    const id = this.stateManager.generateId();
+    const name = this.stateManager.generateName();
+
+    const instance: TerminalInstance = {
+      id,
+      name,
+      pty: undefined,
+      isActive: false
+    };
+
+    this.stateManager.set(id, instance);
+    this.stateManager.setActive(id);
+
+    this.postMessage({ type: 'createTab', id, name });
+    this.sendTabsUpdate();
+
+    const cwd = await this.ptyManager.selectWorkingDirectory();
+
+    // Use provided command/args instead of config
+    const config = this.configManager.getConfig();
+    const customConfig = { ...config, command, args };
+    this.ptyManager.spawn(id, customConfig, this.lastCols, this.lastRows, cwd);
+
     this.postMessage({ type: 'switchTab', id });
 
     return id;

@@ -52,6 +52,7 @@ export type WebviewMessage =
   | { type: 'input'; id: string; data: string }
   | { type: 'resize'; id: string; cols: number; rows: number }
   | { type: 'newTab' }
+  | { type: 'newTabWithCommand' }
   | { type: 'closeTab'; id: string }
   | { type: 'switchTab'; id: string };
 

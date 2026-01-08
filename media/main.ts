@@ -288,6 +288,9 @@ class WebviewContext {
 
     const addButton = this.createAddButton();
     this.tabBar.appendChild(addButton);
+
+    const customCmdButton = this.createCustomCommandButton();
+    this.tabBar.appendChild(customCmdButton);
   }
 
   private createTabElement(tab: TabInfo, index: number): HTMLDivElement {
@@ -328,6 +331,20 @@ class WebviewContext {
       this.postMessage({ type: 'newTab' });
     };
     return addButton;
+  }
+
+  private createCustomCommandButton(): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.className = 'tab-add';
+    button.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display: block; margin: auto;">
+      <path d="M1 3.5L4.5 7 1 10.5v1.12l4.5-4.5v-.24L1 2.38V3.5zm5 9h9v-1H6v1z"/>
+      <path d="M11 3v2H9v1h2v2h1V6h2V5h-2V3h-1z"/>
+    </svg>`;
+    button.title = 'New Terminal with Custom Command';
+    button.onclick = () => {
+      this.postMessage({ type: 'newTabWithCommand' });
+    };
+    return button;
   }
 
   createTerminalElement(id: string): TerminalEntry {
