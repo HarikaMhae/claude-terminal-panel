@@ -51,6 +51,7 @@ export interface TerminalInstance {
   isActive: boolean;
   workspaceFolderIndex?: number;
   isWaitingForInput?: boolean;
+  cwd?: string;
 }
 
 // Tab information for UI
@@ -70,7 +71,8 @@ export type WebviewMessage =
   | { type: 'newTab' }
   | { type: 'newTabWithCommand' }
   | { type: 'closeTab'; id: string }
-  | { type: 'switchTab'; id: string };
+  | { type: 'switchTab'; id: string }
+  | { type: 'openFile'; id: string; path: string; line?: number; column?: number };
 
 // Extension message types (from extension to webview)
 export type ExtensionMessage =

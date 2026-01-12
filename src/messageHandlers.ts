@@ -12,6 +12,7 @@ export interface MessageHandlerContext {
   handleNewTabWithCommand(): void;
   handleCloseTab(id: string): void;
   handleSwitchTab(id: string): void;
+  handleOpenFile(id: string, path: string, line?: number, column?: number): void;
 }
 
 type MessageHandler<T extends WebviewMessage> = (message: T, ctx: MessageHandlerContext) => void;
@@ -45,6 +46,9 @@ const messageHandlers: MessageHandlerMap = {
   },
   switchTab: (message, ctx) => {
     ctx.handleSwitchTab(message.id);
+  },
+  openFile: (message, ctx) => {
+    ctx.handleOpenFile(message.id, message.path, message.line, message.column);
   }
 };
 

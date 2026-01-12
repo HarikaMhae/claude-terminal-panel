@@ -1,4 +1,4 @@
-import { Terminal } from '@xterm/xterm';
+import { Terminal, type ILinkProvider, type ILink } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import type {
@@ -9,6 +9,97 @@ import type {
   TerminalEntry,
   XTermTheme
 } from './types';
+
+// File path link provider for terminal
+class FileLinkProvider implements ILinkProvider {
+  // Regex to match file paths with optional :line:column
+  // Matches: /path/file.ts, ./file.ts, src/file.ts:10:5, ~/file.ts
+  // Also matches extensionless files: Makefile, Dockerfile, src/Makefile
+  private static readonly FILE_PATH_REGEX =
+    /(?:^|[\s"'`([{])([.~]?\/[\w./-]+(?:\.[a-zA-Z0-9]+)?|[\w.-]+\/[\w./-]+(?:\.[a-zA-Z0-9]+)?)(?::(\d+))?(?::(\d+))?/g;
+
+  // Common extensionless files that should be recognized
+  private static readonly EXTENSIONLESS_FILES = new Set([
+    'Makefile',
+    'Dockerfile',
+    'Containerfile',
+    'Vagrantfile',
+    'Procfile',
+    'Gemfile',
+    'Rakefile',
+    'Brewfile',
+    'Justfile',
+    'Taskfile',
+    'Earthfile',
+    'CMakeLists',
+    'GNUmakefile',
+    'BSDmakefile'
+  ]);
+
+  constructor(
+    private readonly terminal: Terminal,
+    private readonly terminalId: string,
+    private readonly postMessage: (msg: WebviewOutgoingMessage) => void
+  ) {}
+
+  provideLinks(bufferLineNumber: number, callback: (links: ILink[] | undefined) => void): void {
+    const line = this.terminal.buffer.active.getLine(bufferLineNumber - 1);
+    if (!line) {
+      callback(undefined);
+      return;
+    }
+
+    const lineText = line.translateToString();
+    const links: ILink[] = [];
+
+    // Reset regex state
+    FileLinkProvider.FILE_PATH_REGEX.lastIndex = 0;
+
+    let match: RegExpExecArray | null;
+    while ((match = FileLinkProvider.FILE_PATH_REGEX.exec(lineText)) !== null) {
+      const fullMatch = match[0];
+      const path = match[1];
+      const lineNum = match[2] ? parseInt(match[2], 10) : undefined;
+      const column = match[3] ? parseInt(match[3], 10) : undefined;
+
+      // Skip paths without extensions unless they're known extensionless files
+      const hasExtension = /\.[a-zA-Z0-9]+$/.test(path);
+      if (!hasExtension) {
+        const filename = path.split('/').pop() ?? '';
+        if (!FileLinkProvider.EXTENSIONLESS_FILES.has(filename)) {
+          continue;
+        }
+      }
+
+      // Calculate the start position (skip leading whitespace/quotes captured)
+      const pathStart = match.index + fullMatch.indexOf(path);
+      const pathEnd =
+        pathStart +
+        path.length +
+        (match[2] ? `:${match[2]}`.length : 0) +
+        (match[3] ? `:${match[3]}`.length : 0);
+
+      links.push({
+        range: {
+          start: { x: pathStart + 1, y: bufferLineNumber },
+          end: { x: pathEnd + 1, y: bufferLineNumber }
+        },
+        text: path,
+        activate: () => {
+          this.postMessage({
+            type: 'openFile',
+            id: this.terminalId,
+            path,
+            line: lineNum,
+            column
+          });
+        }
+      });
+    }
+
+    callback(links.length > 0 ? links : undefined);
+  }
+}
 
 // State management class replacing closure variables
 class TerminalState {
@@ -406,6 +497,10 @@ class WebviewContext {
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(webLinksAddon);
     terminal.open(container);
+
+    // Register file path link provider
+    const fileLinkProvider = new FileLinkProvider(terminal, id, this.postMessage.bind(this));
+    terminal.registerLinkProvider(fileLinkProvider);
 
     const entry: TerminalEntry = {
       terminal,

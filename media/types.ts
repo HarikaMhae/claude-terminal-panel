@@ -40,7 +40,8 @@ export type WebviewOutgoingMessage =
   | { type: 'newTab' }
   | { type: 'newTabWithCommand' }
   | { type: 'closeTab'; id: string }
-  | { type: 'switchTab'; id: string };
+  | { type: 'switchTab'; id: string }
+  | { type: 'openFile'; id: string; path: string; line?: number; column?: number };
 
 // Terminal entry in the map
 export interface TerminalEntry {

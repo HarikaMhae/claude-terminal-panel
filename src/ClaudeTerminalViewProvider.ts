@@ -86,6 +86,65 @@ export class ClaudeTerminalViewProvider
     this.switchToTerminal(id);
   }
 
+  handleOpenFile(id: string, path: string, line?: number, column?: number): void {
+    const instance = this.stateManager.get(id);
+    const cwd = instance?.cwd;
+    void this.openFileInEditor(path, cwd, line, column);
+  }
+
+  private async openFileInEditor(
+    filePath: string,
+    terminalCwd?: string,
+    line?: number,
+    column?: number
+  ): Promise<void> {
+    try {
+      // Expand tilde to home directory
+      let resolvedPath = filePath;
+      if (resolvedPath.startsWith('~/')) {
+        const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
+        resolvedPath = resolvedPath.replace('~', homeDir);
+      }
+
+      // Resolve relative paths using terminal's cwd or workspace folder
+      let uri: vscode.Uri;
+      if (resolvedPath.startsWith('/') || /^[a-zA-Z]:/.test(resolvedPath)) {
+        // Absolute path
+        uri = vscode.Uri.file(resolvedPath);
+      } else if (terminalCwd) {
+        // Relative path - resolve from terminal's working directory
+        uri = vscode.Uri.file(`${terminalCwd}/${resolvedPath}`);
+      } else {
+        // Fallback to workspace folder
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+          uri = vscode.Uri.joinPath(workspaceFolders[0].uri, resolvedPath);
+        } else {
+          uri = vscode.Uri.file(resolvedPath);
+        }
+      }
+
+      const document = await vscode.workspace.openTextDocument(uri);
+      const editor = await vscode.window.showTextDocument(document);
+
+      // Navigate to line/column if specified
+      if (line !== undefined && line > 0) {
+        const position = new vscode.Position(
+          line - 1,
+          column !== undefined && column > 0 ? column - 1 : 0
+        );
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(
+          new vscode.Range(position, position),
+          vscode.TextEditorRevealType.InCenter
+        );
+      }
+    } catch (error) {
+      // Log error for debugging but don't show disruptive notifications
+      console.warn(`[Claude Terminal] Failed to open file: ${filePath}`, error);
+    }
+  }
+
   // --- PTY Event Handlers ---
 
   private handlePtyData(terminalId: string, data: string): void {
@@ -152,7 +211,8 @@ export class ClaudeTerminalViewProvider
       name,
       pty: undefined,
       isActive: false,
-      workspaceFolderIndex: folderIndex
+      workspaceFolderIndex: folderIndex,
+      cwd
     };
 
     // Add instance first, then activate (so setActive can find it)
@@ -197,7 +257,8 @@ export class ClaudeTerminalViewProvider
       name,
       pty: undefined,
       isActive: false,
-      workspaceFolderIndex: folderIndex
+      workspaceFolderIndex: folderIndex,
+      cwd
     };
 
     this.stateManager.set(id, instance);
