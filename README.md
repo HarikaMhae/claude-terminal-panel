@@ -36,7 +36,7 @@ Run **Claude Code**, **Gemini CLI**, **OpenAI Codex**, **Aider**, **OpenCode** a
 
 ## Supported Tools
 
-This extension works with any command-line AI assistant. Here are some popular options, with corrected installation instructions and additional top CLI AI coding agents based on current popularity in 2025-2026, including OpenCode:
+This extension works with any command-line AI assistant. Here are some popular options with installation instructions and additional top CLI AI coding agents, including OpenCode:
 
 | Tool                                                                    | Command       | Installation                               |
 | ----------------------------------------------------------------------- | ------------- | ------------------------------------------ |
