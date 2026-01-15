@@ -24,7 +24,11 @@ class GnuStyleParser implements HelpParser {
     // --add-dir <dirs...>    description
     new RegExp(`^\\s*()(--[\\w-]+)${this.valuePattern}\\s{2,}(.+)$`),
     // -v                     description (short only)
-    new RegExp(`^\\s*(-\\w)()${this.valuePattern}\\s{2,}(.+)$`)
+    new RegExp(`^\\s*(-\\w)()${this.valuePattern}\\s{2,}(.+)$`),
+    // --add-dir <DIR>        (description on next line - Rust clap style)
+    new RegExp(`^\\s*()(--[\\w-]+)${this.valuePattern}()\\s*$`),
+    // -C, --cd <DIR>         (description on next line - Rust clap style)
+    new RegExp(`^\\s*(-\\w),?\\s*(--[\\w-]+)${this.valuePattern}()\\s*$`)
   ];
 
   canParse(output: string): boolean {
@@ -50,6 +54,12 @@ class GnuStyleParser implements HelpParser {
         if (match) {
           // Save previous flag if exists
           if (currentFlag) {
+            // Re-evaluate repeatable after all continuation lines are processed
+            if (!currentFlag.repeatable) {
+              currentFlag.repeatable =
+                /\badditional\b/i.test(currentFlag.description) ||
+                /\bmultiple\b/i.test(currentFlag.description);
+            }
             flags.push(currentFlag);
           }
 
@@ -58,12 +68,19 @@ class GnuStyleParser implements HelpParser {
           const long = first.startsWith('--') ? first : second;
 
           if (long || short) {
+            const desc = description.trim();
+            // Detect repeatable flags by valueHint pattern (...) or description keywords
+            const isRepeatable =
+              (valueHint && valueHint.includes('...')) ||
+              /\badditional\b/i.test(desc) ||
+              /\bmultiple\b/i.test(desc);
             currentFlag = {
               flag: long || short,
               shortFlag: short && long ? short : undefined,
-              description: description.trim(),
+              description: desc,
               takesValue: !!valueHint,
-              valueHint: valueHint || undefined
+              valueHint: valueHint || undefined,
+              repeatable: isRepeatable
             };
             matched = true;
           }
@@ -79,6 +96,12 @@ class GnuStyleParser implements HelpParser {
 
     // Don't forget the last flag
     if (currentFlag) {
+      // Re-evaluate repeatable after all continuation lines are processed
+      if (!currentFlag.repeatable) {
+        currentFlag.repeatable =
+          /\badditional\b/i.test(currentFlag.description) ||
+          /\bmultiple\b/i.test(currentFlag.description);
+      }
       flags.push(currentFlag);
     }
 
@@ -115,12 +138,19 @@ class ArgparseStyleParser implements HelpParser {
 
         const [, short, long, valueHint, description] = match;
         if (long || short) {
+          const desc = description.trim();
+          // Detect repeatable flags by valueHint pattern (...) or description keywords
+          const isRepeatable =
+            (valueHint && valueHint.includes('...')) ||
+            /\badditional\b/i.test(desc) ||
+            /\bmultiple\b/i.test(desc);
           currentFlag = {
             flag: long || short || '',
             shortFlag: short && long ? short : undefined,
-            description: description.trim(),
+            description: desc,
             takesValue: !!valueHint,
-            valueHint: valueHint || undefined
+            valueHint: valueHint || undefined,
+            repeatable: isRepeatable
           };
         }
       } else if (currentFlag && /^\s{20,}\S/.test(line)) {

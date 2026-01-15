@@ -5,6 +5,15 @@ All notable changes to the "Claude Terminal Panel" extension will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.10] - 2026-01-14
+
+### Added
+
+- Path autocomplete for command flags that accept file/directory paths
+- Smart detection of path-accepting flags via value hints (`<path>`, `<file>`, `<directory>`, `<directories...>`)
+- Hidden file support when user explicitly types a dot prefix
+- Support for `~/` home directory paths with proper tilde notation in suggestions
+
 ## [1.0.9] - 2026-01-12
 
 ### Added

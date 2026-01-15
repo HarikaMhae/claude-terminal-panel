@@ -91,6 +91,7 @@ export interface CommandFlag {
   description: string;
   takesValue?: boolean;
   valueHint?: string;
+  repeatable?: boolean;
 }
 
 export interface ParsedHelp {
@@ -98,4 +99,29 @@ export interface ParsedHelp {
   flags: CommandFlag[];
   subcommands?: string[];
   parseErrors?: string[];
+}
+
+// Path autocomplete types
+export type PathFilterMode = 'all' | 'files' | 'directories';
+
+export interface PathSuggestion {
+  /** Display name (e.g., "package.json") */
+  name: string;
+  /** Full path to suggest (relative or absolute) */
+  path: string;
+  /** Whether this is a directory */
+  isDirectory: boolean;
+}
+
+export interface PathContext {
+  /** Whether we're in path completion mode */
+  active: boolean;
+  /** The partial path typed so far (e.g., "src/comp") */
+  partialPath: string;
+  /** Filter mode based on valueHint */
+  filterMode: PathFilterMode;
+  /** Whether to show absolute paths (user typed leading /) */
+  isAbsolute: boolean;
+  /** The flag being completed */
+  flag: CommandFlag;
 }
